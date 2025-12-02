@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Background Remover</title>
+
+<!-- MediaPipe Selfie Segmentation -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #f4f4f4;
+    padding: 40px;
+  }
+  #uploaded-img, #output {
+    max-width: 400px;
+    border-radius: 10px;
+    margin: 20px 0;
+  }
+  .btn {
+    padding: 10px 20px;
+    background: #333;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Background Remover</h1>
+<input type="file" id="imageInput" accept="image/*" />
+
+<br>
+
+<canvas id="output"></canvas>
+
+<script>
+  const canvas = document.getElementById("output");
+  const ctx = canvas.getContext("2d");
+
+  const selfieSegmentation = new SelfieSegmentation({
+    locateFile: (file) =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`,
+  });
+
+  selfieSegmentation.setOptions({
+    modelSelection: 1, // 0 = fast, 1 = best quality
+  });
+
+  selfieSegmentation.onResults(drawMask);
+
+  function drawMask(results) {
+    canvas.width = results.image.width;
+    canvas.height = results.image.height;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let mask = results.segmentationMask;
+    ctx.drawImage(mask, 0, 0, canvas.width, canvas.height);
+
+    ctx.globalCompositeOperation = "source-in";
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  document.getElementById("imageInput").addEventListener("change", function (e) {
+    let file = e.target.files[0];
+    if (!file) return;
+
+    let img = new Image();
+    img.src = URL.createObjectURL(file);
+
+    img.onload = () => {
+      selfieSegmentation.send({ image: img });
+    };
+  });
+</script>
+
+</body>
+</html>
